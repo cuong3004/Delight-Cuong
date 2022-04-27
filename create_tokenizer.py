@@ -9,41 +9,11 @@ from tokenizers.processors import TemplateProcessing
 from tokenizers.trainers import WordPieceTrainer
 
 
-import os 
-
-if os.path.exists("vocab"):
-    os.mkdir('vocab')
-
-
-def create_volab(file_data, file_out):
-    
-    # initialize
-    tokenizer = BertWordPieceTokenizer(
-        clean_text=True,
-        handle_chinese_chars=False,
-        strip_accents=False,
-        lowercase=False
-    )
-    # and train
-    tokenizer.train(files=file_data, vocab_size=30_000, min_frequency=2,
-                    limit_alphabet=1000, wordpieces_prefix='##',
-                    special_tokens=[
-                        '[PAD', '[UNK]', '[CLS]', '[SEP]', '[MASK]'])
-    
-    tokenizer.save_model('./vocab', 'file_out')
-
-
 from tokenizers import normalizers
 from tokenizers.normalizers import NFD, StripAccents
-normalizer = normalizers.Sequence([NFD(), StripAccents()])
-
 from tokenizers import pre_tokenizers
 from tokenizers.pre_tokenizers import Digits
 from tokenizers.pre_tokenizers import Whitespace
-
-
-
-
 
 def create_tokenizer_vi():
     
@@ -69,7 +39,7 @@ def create_tokenizer_vi():
     trainer = WordPieceTrainer(
         vocab_size=30522, special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"]
     )
-    files = "train.vi"
+    files = ["train.vi"]
     tokenizer.train(files, trainer)
     tokenizer.save("tokenizer_vi.json")
 
@@ -98,7 +68,7 @@ def create_tokenizer_en():
     trainer = WordPieceTrainer(
         vocab_size=30522, special_tokens=["[UNK]", "[CLS]", "[SEP]", "[PAD]", "[MASK]"]
     )
-    files = "train.en"
+    files = ["train.en"]
     tokenizer.train(files, trainer)
     tokenizer.save("tokenizer_en.json")
 
