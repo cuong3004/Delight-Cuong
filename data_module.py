@@ -55,12 +55,6 @@ class TranslationDataModule(pl.LightningDataModule):
         self.src_pad_idx = self.tokenizer_src.token_to_id("[PAD]")
         self.tgt_pad_idx = self.tokenizer_tgt.token_to_id("[PAD]")
 
-        src_vocab_size,
-        trg_vocab_size,
-        src_pad_idx,
-        trg_pad_idx,
-
-
         # Defining batch size of our data
         self.batch_size = batch_size
         self.direction = direction
@@ -133,9 +127,9 @@ class TranslationDataModule(pl.LightningDataModule):
         targets = self.clip_tokens(targets, mode="tgt")
         targets_pred = self.clip_tokens(targets_pred, mode="tgt")
 
-        self.check_len(sources)
-        self.check_len(targets)
-        self.check_len(targets_pred)
+        # self.check_len(sources)
+        # self.check_len(targets)
+        # self.check_len(targets_pred)
 
         assert len(sources) == len(targets) == len(targets_pred)
         # print(len(sources[0]), len(sources[1]))
