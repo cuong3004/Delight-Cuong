@@ -1,9 +1,10 @@
 import readline
 import pytorch_lightning as pl
-from tokenizes import Tokenizer
+from tokenizers import Tokenizer
 from tokenizers.processors import TemplateProcessing
 import torch 
 from torch.utils.data import DataLoader
+from collections import Counter
 
 
 class TranslationData:
@@ -27,7 +28,7 @@ class TranslationData:
 
 
 class TranslationDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size: int = 32, num_workers: int = 2, direction="vien"):
+    def __init__(self, batch_size: int = 32, num_workers: int = 2, direction="vien", len_tokens=150):
         super().__init__()
    
         # Define the model
@@ -41,11 +42,23 @@ class TranslationDataModule(pl.LightningDataModule):
         else:
             raise Exception("Eror")
         
-        self.tokenizer_src.enable_padding(length=100)
-        self.tokenizer_tgt.enable_padding(length=100, direction='left')
+        self.len_tokens = len_tokens
+        self.tokenizer_src.enable_padding(length=len_tokens)
+        self.tokenizer_tgt.enable_padding(length=len_tokens, direction='left')
 
         
         self.tokenizer_tgt.post_processor = TemplateProcessing(single="$A")
+
+        self.src_vocab_size = self.tokenizer_src.get_vocab_size()
+        self.tgt_vocab_size = self.tokenizer_tgt.get_vocab_size()
+
+        self.src_pad_idx = self.tokenizer_src.token_to_id("[PAD]")
+        self.tgt_pad_idx = self.tokenizer_tgt.token_to_id("[PAD]")
+
+        src_vocab_size,
+        trg_vocab_size,
+        src_pad_idx,
+        trg_pad_idx,
 
 
         # Defining batch size of our data
@@ -65,6 +78,9 @@ class TranslationDataModule(pl.LightningDataModule):
     #     self.train_data = TranslationData()
         # self.val_data = datasets['validation']
         # self.test_data = datasets['test']
+    def check_len(self, x):
+        len_x = [len(i) for i in x]
+        print(Counter(len_x))
   
     def setup(self, stage=None):
         # Loading the dataset
@@ -92,6 +108,13 @@ class TranslationDataModule(pl.LightningDataModule):
         return ['[CLS] ' + text for text in texts]
     def insert_sep_token(self, texts):
         return  [text + ' [SEP]' for text in texts]
+    
+    def clip_tokens(self, token_ids_batch, mode="src"):
+        if mode=="src":
+            # print(len(token_ids[:self.len_tokens]))
+            return [token_ids[:self.len_tokens] for token_ids in token_ids_batch]
+        elif mode=="tgt":
+            return [token_ids[-self.len_tokens:] for token_ids in token_ids_batch]
   
     def custom_collate(self,features):
         ## Pad the Batched data
@@ -104,9 +127,22 @@ class TranslationDataModule(pl.LightningDataModule):
         targets_pred = [i.ids for i in self.tokenizer_tgt.encode_batch(self.insert_sep_token(targets))]
         targets = [i.ids for i in self.tokenizer_tgt.encode_batch(self.insert_cls_token(targets))]
 
-        sources = torch.stack(sources)
-        targets_pred = torch.stack(targets_pred)
-        targets = torch.stack(targets)
+        
+
+        sources = self.clip_tokens(sources, mode="src")
+        targets = self.clip_tokens(targets, mode="tgt")
+        targets_pred = self.clip_tokens(targets_pred, mode="tgt")
+
+        self.check_len(sources)
+        self.check_len(targets)
+        self.check_len(targets_pred)
+
+        assert len(sources) == len(targets) == len(targets_pred)
+        # print(len(sources[0]), len(sources[1]))
+        # print(sources)
+        sources = torch.as_tensor(sources)
+        targets_pred = torch.as_tensor(targets_pred)
+        targets = torch.as_tensor(targets)
 
         return sources, targets, targets_pred
         

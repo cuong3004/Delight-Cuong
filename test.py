@@ -1,4 +1,5 @@
 from tokenizers import Tokenizer
+from model.transformer import test_transformer
 
 def test_tokenizer():
     tokenizer = Tokenizer.from_file("tokenizer_vi.json")
@@ -9,3 +10,5 @@ def test_tokenizer():
 
 
 test_tokenizer()
+
+test_transformer()

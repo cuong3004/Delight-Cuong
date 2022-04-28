@@ -1,3 +1,4 @@
+from matplotlib import transforms
 import pytorch_lightning as pl
 from tenacity import retry
 from torch import nn
@@ -78,7 +79,20 @@ class TransformerTranslation(pl.LightningModule):
 
 if __name__ == "__main__":
     from data_module import TranslationDataModule
-    datamodule = TranslationDataModule()
+    from transformer import Transformer 
+    tranlate_module = TranslationDataModule()
 
-    lit = TransformerTranslation()
+    src_vocab_size = datamodule.src_vocab_size
+    tgt_vocab_size = datamodule.tgt_vocab_size
+    src_pad_idx = datamodule.src_pad_idx
+    tgt_pad_idx = datamodule.tgt_pad_idx
+
+    transformer_model = Transformer(src_vocab_size, tgt_vocab_size, src_pad_idx, tgt_pad_idx)
+
+    x, y, z = next(iter(tranlate_module.train_dataloader()))
+
+    out = transformer_model(x, y)
+
+
+    # lit = TransformerTranslation()
     
