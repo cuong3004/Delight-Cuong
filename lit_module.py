@@ -80,12 +80,13 @@ class TransformerTranslation(pl.LightningModule):
 if __name__ == "__main__":
     from data_module import TranslationDataModule
     from transformer import Transformer 
+    
     tranlate_module = TranslationDataModule()
 
-    src_vocab_size = datamodule.src_vocab_size
-    tgt_vocab_size = datamodule.tgt_vocab_size
-    src_pad_idx = datamodule.src_pad_idx
-    tgt_pad_idx = datamodule.tgt_pad_idx
+    src_vocab_size = tranlate_module.src_vocab_size
+    tgt_vocab_size = tranlate_module.tgt_vocab_size
+    src_pad_idx = tranlate_module.src_pad_idx
+    tgt_pad_idx = tranlate_module.tgt_pad_idx
 
     transformer_model = Transformer(src_vocab_size, tgt_vocab_size, src_pad_idx, tgt_pad_idx)
 
