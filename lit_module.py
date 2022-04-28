@@ -11,12 +11,15 @@ class TransformerTranslation(pl.LightningModule):
         self.model = model
         self.loss_fn = nn.CrossEntropyLoss()
 
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.model.parameters(), lr=0.0001)
 
     def _share_step(self, batch, mode='train', **kwargs):
         src, tgt, tgt_pred = batch
 
         output = self.model(src, tgt)
-        loss = self.loss_fn(output, tgt_pred)
+        # y_hat.view(-1, self.model.config.vocab_size), labels.view(-1)
+        loss = self.loss_fn(output.view(-1, self.model.trg_vocab_size), tgt_pred.view(-1))
 
         self.log(f"{mode}_loss", loss)
 
@@ -82,17 +85,38 @@ if __name__ == "__main__":
     from transformer import Transformer 
     
     tranlate_module = TranslationDataModule()
+    tranlate_module.setup()
 
     src_vocab_size = tranlate_module.src_vocab_size
     tgt_vocab_size = tranlate_module.tgt_vocab_size
+
+    print(src_vocab_size, tgt_vocab_size)
     src_pad_idx = tranlate_module.src_pad_idx
     tgt_pad_idx = tranlate_module.tgt_pad_idx
+    max_length = tranlate_module.max_length
+    print(src_pad_idx, tgt_pad_idx)
 
-    transformer_model = Transformer(src_vocab_size, tgt_vocab_size, src_pad_idx, tgt_pad_idx)
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = Transformer(src_vocab_size, tgt_vocab_size, src_pad_idx, tgt_pad_idx, max_length=max_length).to(
+        device
+    )
+    
     x, y, z = next(iter(tranlate_module.train_dataloader()))
 
-    out = transformer_model(x, y)
+    # emb = torch.nn.Embedding(src_vocab_size, 512)
+    # print(emb(x).shape)
+
+    out = model(x, y)
+    print(out.shape)
+
+    lit_module = TransformerTranslation(model)
+    gpus = 1 if torch.cuda.is_available() else 0
+    trainer = pl.Trainer(gpus=gpus, max_epochs=1)
+    trainer.fit(lit_module, tranlate_module)
+
+    # print(x.shape, y.shape)
+
+    # out = transformer_model(x[:1], y[:1])
 
 
     # lit = TransformerTranslation()

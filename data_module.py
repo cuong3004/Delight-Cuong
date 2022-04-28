@@ -28,7 +28,7 @@ class TranslationData:
 
 
 class TranslationDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size: int = 32, num_workers: int = 2, direction="vien", len_tokens=150):
+    def __init__(self, batch_size: int = 32, num_workers: int = 2, direction="vien", max_length=150):
         super().__init__()
    
         # Define the model
@@ -42,9 +42,9 @@ class TranslationDataModule(pl.LightningDataModule):
         else:
             raise Exception("Eror")
         
-        self.len_tokens = len_tokens
-        self.tokenizer_src.enable_padding(length=len_tokens)
-        self.tokenizer_tgt.enable_padding(length=len_tokens, direction='left')
+        self.max_length = max_length
+        self.tokenizer_src.enable_padding(length=max_length)
+        self.tokenizer_tgt.enable_padding(length=max_length, direction='left')
 
         
         self.tokenizer_tgt.post_processor = TemplateProcessing(single="$A")
@@ -77,10 +77,12 @@ class TranslationDataModule(pl.LightningDataModule):
         print(Counter(len_x))
   
     def setup(self, stage=None):
+        # print(self.direction)
         # Loading the dataset
         # column_names = self.train_data.column_names
         if self.direction == "vien":
             self.train_dataset = TranslationData(train_src="train.vi", train_tgt="train.en")
+            # print(self.train_dataset)
         elif self.direction == "envi":
             self.train_dataset = TranslationData(train_src="train.en", train_tgt="train.vi")
 
@@ -106,9 +108,9 @@ class TranslationDataModule(pl.LightningDataModule):
     def clip_tokens(self, token_ids_batch, mode="src"):
         if mode=="src":
             # print(len(token_ids[:self.len_tokens]))
-            return [token_ids[:self.len_tokens] for token_ids in token_ids_batch]
+            return [token_ids[:self.max_length] for token_ids in token_ids_batch]
         elif mode=="tgt":
-            return [token_ids[-self.len_tokens:] for token_ids in token_ids_batch]
+            return [token_ids[-self.max_length:] for token_ids in token_ids_batch]
   
     def custom_collate(self,features):
         ## Pad the Batched data

@@ -109,7 +109,7 @@ class Encoder(nn.Module):
         embed_size,
         num_layers,
         heads,
-        device,
+        # device,
         forward_expansion,
         dropout,
         max_length,
@@ -117,7 +117,7 @@ class Encoder(nn.Module):
 
         super(Encoder, self).__init__()
         self.embed_size = embed_size
-        self.device = device
+        # self.device = device
         self.word_embedding = nn.Embedding(src_vocab_size, embed_size)
         self.position_embedding = nn.Embedding(max_length, embed_size)
 
@@ -137,7 +137,8 @@ class Encoder(nn.Module):
 
     def forward(self, x, mask):
         N, seq_length = x.shape
-        positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
+        device = x.device
+        positions = torch.arange(0, seq_length).expand(N, seq_length).to(device)
         out = self.dropout(
             (self.word_embedding(x) + self.position_embedding(positions))
         )
@@ -151,7 +152,7 @@ class Encoder(nn.Module):
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, embed_size, heads, forward_expansion, dropout, device):
+    def __init__(self, embed_size, heads, forward_expansion, dropout):
         super(DecoderBlock, self).__init__()
         self.norm = nn.LayerNorm(embed_size)
         self.attention = SelfAttention(embed_size, heads=heads)
@@ -176,17 +177,17 @@ class Decoder(nn.Module):
         heads,
         forward_expansion,
         dropout,
-        device,
+        # device,
         max_length,
     ):
         super(Decoder, self).__init__()
-        self.device = device
+        # self.device = device
         self.word_embedding = nn.Embedding(trg_vocab_size, embed_size)
         self.position_embedding = nn.Embedding(max_length, embed_size)
 
         self.layers = nn.ModuleList(
             [
-                DecoderBlock(embed_size, heads, forward_expansion, dropout, device)
+                DecoderBlock(embed_size, heads, forward_expansion, dropout)
                 for _ in range(num_layers)
             ]
         )
@@ -195,7 +196,8 @@ class Decoder(nn.Module):
 
     def forward(self, x, enc_out, src_mask, trg_mask):
         N, seq_length = x.shape
-        positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
+        device = x.device
+        positions = torch.arange(0, seq_length).expand(N, seq_length).to(device)
         x = self.dropout((self.word_embedding(x) + self.position_embedding(positions)))
 
         for layer in self.layers:
@@ -218,7 +220,7 @@ class Transformer(nn.Module):
         forward_expansion=4,
         heads=8,
         dropout=0,
-        device="cpu",
+        # device="cpu",
         max_length=100,
     ):
 
@@ -229,7 +231,7 @@ class Transformer(nn.Module):
             embed_size,
             num_layers,
             heads,
-            device,
+            # device,
             forward_expansion,
             dropout,
             max_length,
@@ -242,26 +244,30 @@ class Transformer(nn.Module):
             heads,
             forward_expansion,
             dropout,
-            device,
+            # device,
             max_length,
         )
 
+        self.src_vocab_size = src_vocab_size
+        self.trg_vocab_size = trg_vocab_size
         self.src_pad_idx = src_pad_idx
         self.trg_pad_idx = trg_pad_idx
-        self.device = device
+        # self.device = device
 
     def make_src_mask(self, src):
+        device = src.device
         src_mask = (src != self.src_pad_idx).unsqueeze(1).unsqueeze(2)
         # (N, 1, 1, src_len)
-        return src_mask.to(self.device)
+        return src_mask.to(device)
 
     def make_trg_mask(self, trg):
+        device = trg.device
         N, trg_len = trg.shape
         trg_mask = torch.tril(torch.ones((trg_len, trg_len))).expand(
             N, 1, trg_len, trg_len
         )
 
-        return trg_mask.to(self.device)
+        return trg_mask.to(device)
 
     def forward(self, src, trg):
         src_mask = self.make_src_mask(src)
