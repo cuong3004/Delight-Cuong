@@ -3,6 +3,7 @@ import pytorch_lightning as pl
 from tokenizes import Tokenizer
 from tokenizers.processors import TemplateProcessing
 import torch 
+from torch.utils.data import DataLoader
 
 
 class TranslationData:
@@ -16,7 +17,7 @@ class TranslationData:
         return data
 
     def __len__(self):
-        return self.len(self.train_vi)
+        return len(self.train_src)
     
     def __getitem__(self, idx):
         source = self.train_src[idx]
@@ -30,10 +31,11 @@ class TranslationDataModule(pl.LightningDataModule):
         super().__init__()
    
         # Define the model
+        self.direction = direction
         if direction == "vien":
             self.tokenizer_src = Tokenizer.from_file("tokenizer_vi.json")
             self.tokenizer_tgt = Tokenizer.from_file("tokenizer_en.json")
-        if direction == "envi":
+        elif direction == "envi":
             self.tokenizer_src = Tokenizer.from_file("tokenizer_en.json")
             self.tokenizer_tgt = Tokenizer.from_file("tokenizer_vi.json")
         else:
@@ -67,7 +69,10 @@ class TranslationDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         # Loading the dataset
         # column_names = self.train_data.column_names
-        self.train_dataset = TranslationData()
+        if self.direction == "vien":
+            self.train_dataset = TranslationData(train_src="train.vi", train_tgt="train.en")
+        elif self.direction == "envi":
+            self.train_dataset = TranslationData(train_src="train.en", train_tgt="train.vi")
 
         # column_names = self.val_data.column_names
         # self.val_dataset = self.val_data.map(
@@ -140,11 +145,17 @@ class TranslationDataModule(pl.LightningDataModule):
         #return DataLoader(train_dataset, sampler=dist_sampler, batch_size=32)
         return DataLoader(self.train_dataset, shuffle=True, batch_size=self.batch_size, num_workers=self.num_workers, collate_fn=self.custom_collate)
 
-    def val_dataloader(self):
-         return DataLoader(self.val_dataset,batch_size=self.batch_size, num_workers=self.num_workers, collate_fn=self.custom_collate)
+    # def val_dataloader(self):
+    #      return DataLoader(self.val_dataset,batch_size=self.batch_size, num_workers=self.num_workers, collate_fn=self.custom_collate)
 
-    def test_dataloader(self):
-         return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, collate_fn=self.custom_collate)
+    # def test_dataloader(self):
+    #      return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, collate_fn=self.custom_collate)
 
-    def predict_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, collate_fn=self.custom_collate)         
+    # def predict_dataloader(self):
+    #     return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, collate_fn=self.custom_collate)         
+
+if __name__ == "__main__":
+    tranlate_module = TranslationDataModule()
+    tranlate_module.setup()
+    x, y, z = next(iter(tranlate_module.train_dataloader()))
+    print(x.shape, y.shape, z.shape)
